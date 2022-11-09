@@ -1,27 +1,42 @@
 from starlette.applications import Starlette
 from starlette.responses import JSONResponse
+from starlette.middleware import Middleware
+from starlette.middleware.cors import CORSMiddleware
+from starlette.routing import Route
+
+from pydantic import BaseModel, Field, ValidationError, typing
+from pydantic.typing import Literal
 
 from detoxify import Detoxify
 
-model_original = Detoxify('original')
-model_unbiased = Detoxify('unbiased')
-model_multilingual = Detoxify('multilingual')
+AVAILABLE_MODELS = Literal['original', 'unbiased', 'multilingual']
+
+models = {i: Detoxify(i) for i in typing.get_args(AVAILABLE_MODELS)}
+class Parameters(BaseModel):
+    model: AVAILABLE_MODELS
+    content: str = Field(..., max_length=85000)
 
 async def formatResponse(classification):
     return dict(map(lambda x: (x[0], int(x[1]*100)), classification.items()))
 
-
-app = Starlette()
-
-@app.route('/api/v1/classify', methods=['POST'])
 async def classify(request):
     params = await request.json()
-    match params['model']:
-        case 'original':
-            results = model_original.predict(params['content'])
-        case 'unbiased':
-            results = model_unbiased.predict(params['content'])
-        case 'multilingual':
-            results = model_multilingual.predict(params['content'])
+
+    try:
+        parsed_params = Parameters(**params)
+    except ValidationError as e:
+        return JSONResponse({"error": str(e)}, status_code=422)
+
+    results = models[parsed_params.model].predict(params['content'])
 
     return JSONResponse(await formatResponse(results))
+
+routes = [
+    Route('/api/v1/classify', methods=['POST'], endpoint=classify)
+]
+
+middleware = [
+    Middleware(CORSMiddleware, allow_origins=['*'], allow_methods=['POST'])
+]
+
+app = Starlette(routes=routes, middleware=middleware)
