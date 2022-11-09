@@ -12,12 +12,16 @@ from detoxify import Detoxify
 AVAILABLE_MODELS = Literal['original', 'unbiased', 'multilingual']
 
 models = {i: Detoxify(i) for i in typing.get_args(AVAILABLE_MODELS)}
+
+
 class Parameters(BaseModel):
     model: AVAILABLE_MODELS
     content: str = Field(..., max_length=85000)
 
+
 async def formatResponse(classification):
     return dict(map(lambda x: (x[0], int(x[1]*100)), classification.items()))
+
 
 async def classify(request):
     params = await request.json()
