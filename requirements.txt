@@ -1,3 +1,4 @@
 detoxify==0.5.0
 starlette==0.21.0
 uvicorn==0.18.3
+pydantic==1.10.2
