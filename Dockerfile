@@ -1,4 +1,4 @@
-FROM python:3.10
+FROM python:3.11
 
 WORKDIR /code
 
@@ -8,7 +8,7 @@ RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
 
 COPY ./cache_model.py /code/cache_model.py
 
-# first for downloading and aching the torch models
+# first for downloading and caching the torch models
 # second so 🤗 models cache is moved to the new place
 RUN python cache_model.py
 RUN python cache_model.py
